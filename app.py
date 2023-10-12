@@ -19,16 +19,29 @@ model = pickle.load(open('model.pkl', 'rb'))
 
 def clean_text(text):
     text = word_tokenize(text) # Create tokens
-    text= " ".join(text) # Join tokens
+    text = " ".join(text) # Join tokens
     text = [char for char in text if char not in string.punctuation] # Remove punctuations
-    text = ''.join(text) # Join the leters
+    text = ''.join(text) # Join the letters
     text = [char for char in text if char not in re.findall(r"[0-9]", text)] # Remove Numbers
-    text = ''.join(text) # Join the leters
-    text = [word.lower() for word in text.split() if word.lower() not in set(stopwords.words('english'))] # Remove common english words (I, you, we,...)
-    text = ' '.join(text) # Join the leters
+    text = ''.join(text) # Join the letters
+    text = [word.lower() for word in text.split() if word.lower() not in set(stopwords.words('english'))] # Remove common English words (I, you, we,...)
+    text = ' '.join(text) # Join the letters
     text = list(map(lambda x: port_stemmer.stem(x), text.split()))
-    return " ".join(text)   # error word
+    return " ".join(text)
 
+def detect_spam_patterns(text):
+    patterns = [
+        r".*(bank|account|unusual activity|verify|details|unauthorized).*",
+        r".*(won|prize|lottery|claim|processing fee|offer is valid|free cash).*",
+        r".*(urgent|bank|unusual activity|secure|transactions).*",
+        r".*(tax notice|unclaimed tax refund|social security number|bank details).*",
+        r".*(subscription|canceled|payment issue|update payment details|disruption).*",
+        r".*(unlock|premium features|download|app|unlimited access).*"
+    ]
+    for pattern in patterns:
+        if re.search(pattern, text, re.I):  # Case-insensitive search
+            return True  # Detected as spam
+    return False  # Not detected as spam
 
 st.title('SMS Spam Classifier')
 
@@ -40,7 +53,6 @@ if st.button('Predict'):
         st.header('Please Enter Your Message !!!')
 
     else:
-
         # 1. Preprocess
         transform_text = clean_text(input_sms)
 
@@ -50,9 +62,13 @@ if st.button('Predict'):
         # 3. Prediction
         result = model.predict(vector_input)
 
-        # 4. Display
+        # 4. Detect spam patterns
+        is_spam_pattern = detect_spam_patterns(input_sms)
 
-        if result == 1:
+        # 5. Display
+        if is_spam_pattern:
+            st.header("Spam")
+        elif result == 1:
             st.header("Spam")
         else:
             st.header("Not Spam")
